@@ -18,58 +18,65 @@ const StyledButton = styled.button`
   margin-top: 1rem;
 `;
 
-export function FileUpload() {
-  const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState('Click or drag file to upload');
+type FileUploadProps = {
+    onUploadSuccess: (documentId: string) => void;
+};
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setMessage(`File selected: ${e.target.files[0].name}`);
-    }
-  };
+export function FileUpload({ onUploadSuccess }: FileUploadProps) {
+    const [file, setFile] = useState<File | null>(null);
+    const [message, setMessage] = useState('Click or drag file to upload');
 
-  const handleUpload = async () => {
-    if (!file) {
-      setMessage('Please select a file first!');
-      return;
-    }
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+            setMessage(`File selected: ${e.target.files[0].name}`);
+        }
+    };
 
-    const formData = new FormData();
-    formData.append('file', file);
+    const handleUpload = async () => {
+        if (!file) {
+            setMessage('Please select a file first!');
+            return;
+        }
 
-    try {
-      setMessage('Uploading...');
-      const response = await axios.post('/api/documents/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setMessage(`Upload successful! Document ID: ${response.data.documentId}`);
-      setFile(null);
-    } catch (error) {
-      console.error(error);
-      setMessage('Upload failed. See console for details.');
-    }
-  };
+        const formData = new FormData();
+        formData.append('file', file);
 
-  return (
-    <div>
-      <UploadBox>
-        <input 
-          type="file" 
-          onChange={handleFileChange} 
-          accept="application/pdf"
-          style={{ display: 'none' }} 
-          id="file-upload" 
-        />
-        <label htmlFor="file-upload">
-          <p>{message}</p>
-        </label>
-      </UploadBox>
-      <StyledButton onClick={handleUpload} disabled={!file}>
-        Upload
-      </StyledButton>
-    </div>
-  );
+        try {
+            setMessage('Uploading...');
+            const response = await axios.post('/api/documents/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            const newId = response.data.documentId;
+            setMessage(`Upload successful! Document ID: ${newId}`);
+            setFile(null);
+
+            onUploadSuccess(newId);
+        } catch (error) {
+            console.error(error);
+            setMessage('Upload failed. See console for details.');
+        }
+    };
+
+    return (
+        <div>
+            <UploadBox>
+                <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept="application/pdf"
+                    style={{ display: 'none' }}
+                    id="file-upload"
+                />
+                <label htmlFor="file-upload">
+                    <p>{message}</p>
+                </label>
+            </UploadBox>
+            <StyledButton onClick={handleUpload} disabled={!file}>
+                Upload
+            </StyledButton>
+        </div>
+    );
 }

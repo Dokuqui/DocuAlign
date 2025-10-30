@@ -1,5 +1,6 @@
 ﻿using DocuAlign.Application.Common.Interfaces;
 using DocuAlign.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace DocuAlign.Application.Services;
 
@@ -33,5 +34,10 @@ public class DocumentService : IDocumentService
         await _context.SaveChangesAsync(CancellationToken.None);
 
         return document.Id;
+    }
+
+    public async Task<Document?> GetDocumentAsync(Guid id)
+    {
+        return await _context.Documents.FirstOrDefaultAsync(d => d.Id == id);
     }
 }

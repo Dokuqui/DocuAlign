@@ -22,6 +22,19 @@ public class FileSystemStorage : IFileStorage
         await using var stream = new FileStream(filePath, FileMode.Create);
         await fileStream.CopyToAsync(stream);
         
-        return filePath;
+        return fileName;
+    }
+
+    public async Task<(byte[] FileBytes, string ContentType)> GetFileAsync(string storedPath)
+    {
+        var filePath = Path.Combine(_uploadPath, storedPath);
+
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException("File not found.", storedPath);
+        }
+        
+        var fileBytes = await File.ReadAllBytesAsync(filePath);
+        return (fileBytes, string.Empty);
     }
 }
