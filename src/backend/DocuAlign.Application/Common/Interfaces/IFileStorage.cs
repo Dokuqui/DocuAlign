@@ -3,4 +3,5 @@
 public interface IFileStorage
 {
     Task<string>SaveFileAsync(Stream fileStream, string fileName, string contentType);
+    Task<(byte[] FileBytes, string ContentType)> GetFileAsync(string storedPath);
 }
