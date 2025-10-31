@@ -3,7 +3,7 @@ import fitz
 import pytesseract
 from PIL import Image
 import io
-from models.schemas import TextBlock
+from models.schemas import TextBlock, TextEdit
 from pytesseract import Output
 
 
@@ -159,3 +159,49 @@ def extract_ocr_blocks_from_pdf(file_path: str) -> List[TextBlock]:
 
     doc.close()
     return all_blocks
+
+
+def edit_pdf_text(file_path: str, edits: List[TextEdit]) -> bytes:
+    """
+    Applies a list of text edits to a PDF and returns the
+    modified PDF as bytes.
+    """
+    try:
+        doc = fitz.open(file_path)
+    except Exception as e:
+        print(f"Error opening PDF for editing: {e}")
+        raise
+
+    for edit in edits:
+        try:
+            page = doc.load_page(edit.page_num - 1)
+            page_height = page.rect.height
+
+            redact_rect = fitz.Rect(edit.redact_coords)
+
+            page.add_redact_annot(redact_rect, fill=(1, 1, 1))
+
+            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_PIXELS)
+
+            insert_x = edit.insert_coords[0]
+            insert_y_from_bottom = edit.insert_coords[1]
+            insert_y_from_top = page_height - insert_y_from_bottom
+
+            insert_point = fitz.Point(insert_x, insert_y_from_top)
+
+            page.insert_text(
+                insert_point,
+                edit.new_text,
+                fontsize=edit.fontsize,
+                fontname=edit.fontname,
+                color=(0, 0, 0),  # Black
+            )
+
+        except Exception as page_error:
+            print(f"Error processing edit on page {edit.page_num}: {page_error}")
+            continue
+
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    return pdf_bytes
