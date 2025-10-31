@@ -1,6 +1,6 @@
 import uuid
 import os
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, Response, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
 
@@ -8,7 +8,7 @@ from db import crud
 from services import storage
 from db.database import get_session
 from services import pdf_processor
-from models.schemas import DocumentText, DocumentTextBlocks
+from models.schemas import DocumentEditRequest, DocumentText, DocumentTextBlocks
 
 router = APIRouter()
 
@@ -144,3 +144,33 @@ async def get_document_ocr_blocks(
         )
 
     return DocumentTextBlocks(document_id=str(id), blocks=blocks)
+
+
+@router.post("/{id}/edit", tags=["PDF Processing"])
+async def edit_document(
+    id: uuid.UUID,
+    edit_request: DocumentEditRequest,
+    session: Session = Depends(get_session),
+):
+    """
+    Applies text edits to a document and returns the modified PDF.
+    This triggers a file download in the browser.
+    """
+    document = crud.get_document_by_id(session, id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    file_path = storage.get_file_from_disk_path(document.stored_path)
+
+    try:
+        modified_pdf_bytes = pdf_processor.edit_pdf_text(file_path, edit_request.edits)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to edit PDF: {e}")
+
+    headers = {
+        "Content-Disposition": f"attachment; filename=edited_{document.original_file_name}"
+    }
+
+    return Response(
+        content=modified_pdf_bytes, media_type="application/pdf", headers=headers
+    )

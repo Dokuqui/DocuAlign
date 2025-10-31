@@ -34,3 +34,24 @@ class DocumentTextBlocks(BaseModel):
 
     document_id: str
     blocks: List[TextBlock]
+
+
+class TextEdit(BaseModel):
+    """
+    Represents a single edit operation.
+    """
+
+    page_num: int
+    redact_coords: List[float]
+    new_text: str
+    insert_coords: List[float]
+    fontsize: float = 11
+    fontname: str = "helv"
+
+
+class DocumentEditRequest(BaseModel):
+    """
+    The request body for the /edit endpoint.
+    """
+
+    edits: List[TextEdit]
